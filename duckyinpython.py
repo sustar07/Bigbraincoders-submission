@@ -1,11 +1,3 @@
-# License : GPLv2.0
-# copyright (c) 2023  Dave Bailey
-# Author: Dave Bailey (dbisu, @daveisu)
-#
-#  TODO: ADD support for the following:
-# Add jitter
-# Add LED functionality
-
 import re
 import time
 import random
@@ -21,14 +13,9 @@ from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 
-# comment out these lines for non_US keyboards
 from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS as KeyboardLayout
 from adafruit_hid.keycode import Keycode
 
-# uncomment these lines for non_US keyboards
-# replace LANG with appropriate language
-#from keyboard_layout_win_LANG import KeyboardLayout as KeyboardLayout
-#from keycode_win_LANG import Keycode
 
 def _capsOn():
     return kbd.led_on(Keyboard.LED_CAPS_LOCK)
@@ -108,15 +95,13 @@ class IF:
         else:
             raise ValueError("Invalid condition type")
 
-        # print(f"condition {self.condition} result is {self.lastIfResult} since \"$VAR\" is {variables["$VAR"]}, code is {self.codeIter}")
         depth = 0
         for line in self.codeIter:
             line = self.codeIter.pop(0)
             line = line.strip()
             if line == "":
                 continue
-            # print(line)
-
+                
             if line.startswith("IF"):
                 depth += 1
             elif line.startswith("END_IF"):
@@ -125,27 +110,26 @@ class IF:
                 depth -=1
 
             elif line.startswith("ELSE") and depth == 0:
-                # print(f"ELSE LINE {line}, lastIfResult: {self.lastIfResult}")
                 if self.lastIfResult is False:
-                    line = line[4:].strip()  # Remove 'ELSE' and strip whitespace
+                    line = line[4:].strip()  
                     if line.startswith("IF"):
                         nestedCondition = _getIfCondition(line)
-                        # print(f"nested IF {nestedCondition}")
+                        
                         self.codeIter, self.lastIfResult = IF(nestedCondition, self.codeIter).runIf()
                         if self.lastIfResult == -1 or self.lastIfResult == True:
-                            # print(f"self.lastIfResult {self.lastIfResult}")
+                          
                             return(self.codeIter, True)
                     else:
-                        return IF(True, self.codeIter).runIf()                        #< Regular ELSE block
+                        return IF(True, self.codeIter).runIf()                       
                 else:
                     self._exitIf()
                     break
 
-            # Process regular lines
+           
             elif self.lastIfResult:
-                # print(f"running line {line}")
+           
                 self.codeIter = list(parseLine(line, self.codeIter))
-        # print("end of if")
+        
         return(self.codeIter, self.lastIfResult)
 
 def _getIfCondition(line):
@@ -174,10 +158,10 @@ def _getCodeBlock(linesIter):
 
 def evaluateExpression(expression):
     """Evaluates an expression with variables and returns the result."""
-    # Replace variables (e.g., $FOO) in the expression with their values
+    
     expression = re.sub(r"\$(\w+)", lambda m: str(variables.get(f"${m.group(1)}", 0)), expression)
 
-    expression = expression.replace("^", "**")     #< Replace ^ with ** for exponentiation
+    expression = expression.replace("^", "**")     
     expression = expression.replace("&&", "and")
     expression = expression.replace("||", "or")
 
@@ -188,26 +172,19 @@ def deepcopy(List):
 
 def convertLine(line):
     commands = []
-    # print(line)
-    # loop on each key - the filter removes empty values
     for key in filter(None, line.split(" ")):
         key = key.upper()
-        # find the keycode for the command in the list
         command_keycode = duckyKeys.get(key, None)
         command_consumer_keycode = duckyConsumerKeys.get(key, None)
         if command_keycode is not None:
-            # if it exists in the list, use it
+            
             commands.append(command_keycode)
         elif command_consumer_keycode is not None:
-            # if it exists in the list, use it
-            commands.append(1000+command_consumer_keycode)
-        elif hasattr(Keycode, key):
-            # if it's in the Keycode module, use it (allows any valid keycode)
+             commands.append(1000+command_consumer_keycode)
+        elif hasattr(Keycode, key):)
             commands.append(getattr(Keycode, key))
         else:
-            # if it's not a known key name, show the error for diagnosis
             print(f"Unknown key: <{key}>")
-    # print(commands)
     return commands
 
 def runScriptLine(line):
@@ -248,11 +225,9 @@ def parseLine(line, script_lines):
     elif line.startswith("REM_BLOCK"):
         while line.startswith("END_REM") == False:
             line = next(script_lines).strip()
-            # print(line)
     elif(line[0:3] == "REM"):
         pass
     elif line.startswith("HOLD"):
-        # HOLD command to press and hold a key
         key = line[5:].strip().upper()
         commandKeycode = duckyKeys.get(key, None)
         if commandKeycode:
@@ -260,7 +235,6 @@ def parseLine(line, script_lines):
         else:
             print(f"Unknown key to HOLD: <{key}>")
     elif line.startswith("RELEASE"):
-        # RELEASE command to release a held key
         key = line[8:].strip().upper()
         commandKeycode = duckyKeys.get(key, None)
         if commandKeycode:
@@ -270,7 +244,7 @@ def parseLine(line, script_lines):
     elif(line[0:5] == "DELAY"):
         line = replaceVariables(line)
         time.sleep(float(line[6:])/1000)
-    elif line == "STRINGLN":               #< stringLN block
+    elif line == "STRINGLN":               
         line = next(script_lines).strip()
         line = replaceVariables(line)
         while line.startswith("END_STRINGLN") == False:
@@ -284,7 +258,7 @@ def parseLine(line, script_lines):
         sendString(replaceVariables(line[9:]))
         kbd.press(Keycode.ENTER)
         kbd.release(Keycode.ENTER)
-    elif line == "STRING":                 #< string block
+    elif line == "STRING":                 
         line = next(script_lines).strip()
         line = replaceVariables(line)
         while line.startswith("END_STRING") == False:
@@ -321,7 +295,6 @@ def parseLine(line, script_lines):
         led.value = True
     elif(line[0:21] == "WAIT_FOR_BUTTON_PRESS"):
         button_pressed = False
-        # NOTE: we don't use assincio in this case because we want to block code execution
         while not button_pressed:
             button1.update()
 
@@ -364,7 +337,6 @@ def parseLine(line, script_lines):
             functions[func_name].append(line)
             line = next(script_lines).strip()
     elif line.startswith("WHILE"):
-        # print("ENTER WHILE LOOP")
         condition = line[5:].strip()
         loopCode = list(_getCodeBlock(script_lines))
         while evaluateExpression(condition) == True:
@@ -372,10 +344,10 @@ def parseLine(line, script_lines):
             print(loopCode)
             while currentIterCode:
                 loopLine = currentIterCode.pop(0)
-                currentIterCode = list(parseLine(loopLine, iter(currentIterCode)))      #< very inefficient, should be replaced later.
+                currentIterCode = list(parseLine(loopLine, iter(currentIterCode)))     
 
     elif line.upper().startswith("IF"):
-        # print("ENTER IF")
+        
         script_lines, ret = IF(_getIfCondition(line), script_lines).runIf()
         print(f"IF returned {ret} code")
     elif line.upper().startswith("END_IF"):
@@ -408,13 +380,13 @@ def parseLine(line, script_lines):
         inside_while_block = False
         for func_line in functions[line]:
             if func_line.startswith("WHILE"):
-                inside_while_block = True  # Start skipping lines
+                inside_while_block = True  
                 updated_lines.append(func_line)
             elif func_line.startswith("END_WHILE"):
-                inside_while_block = False  # Stop skipping lines
+                inside_while_block = False  
                 updated_lines.append(func_line)
                 parseLine(updated_lines[0], iter(updated_lines))
-                updated_lines = []  # Clear updated_lines after parsing
+                updated_lines = []  
             elif inside_while_block:
                 updated_lines.append(func_line)
             elif not (func_line.startswith("END_WHILE") or func_line.startswith("WHILE")):
@@ -428,12 +400,11 @@ kbd = Keyboard(usb_hid.devices)
 consumerControl = ConsumerControl(usb_hid.devices)
 layout = KeyboardLayout(kbd)
 
-#init button
-button1_pin = DigitalInOut(GP22) # defaults to input
-button1_pin.pull = Pull.UP      # turn on internal pull-up resistor
+
+button1_pin = DigitalInOut(GP22) 
+button1_pin.pull = Pull.UP      
 button1 =  Debouncer(button1_pin)
 
-#init payload selection switch
 payload1Pin = digitalio.DigitalInOut(GP4)
 payload1Pin.switch_to_input(pull=digitalio.Pull.UP)
 payload2Pin = digitalio.DigitalInOut(GP5)
@@ -444,8 +415,6 @@ payload4Pin = digitalio.DigitalInOut(GP11)
 payload4Pin.switch_to_input(pull=digitalio.Pull.UP)
 
 def getProgrammingStatus():
-    # check GP0 for setup mode
-    # see setup mode for instructions
     progStatusPin = digitalio.DigitalInOut(GP0)
     progStatusPin.switch_to_input(pull=digitalio.Pull.UP)
     progStatus = not progStatusPin.value
@@ -469,7 +438,7 @@ def runScript(file):
                     print(f"runScript: {line}")
                     if(line[0:6] == "REPEAT"):
                         for i in range(int(line[7:])):
-                            #repeat the last command
+                    
                             parseLine(previousLine, script_lines)
                             time.sleep(float(defaultDelay) / 1000)
                     elif line.startswith("RESTART_PAYLOAD"):
@@ -488,11 +457,6 @@ def runScript(file):
 def selectPayload():
     global payload1Pin, payload2Pin, payload3Pin, payload4Pin
     payload = "payload.dd"
-    # check switch status
-    # payload1 = GPIO4 to GND
-    # payload2 = GPIO5 to GND
-    # payload3 = GPIO10 to GND
-    # payload4 = GPIO11 to GND
     payload1State = not payload1Pin.value
     payload2State = not payload2Pin.value
     payload3State = not payload3Pin.value
@@ -511,8 +475,6 @@ def selectPayload():
         payload = "payload4.dd"
 
     else:
-        # if all pins are high, then no switch is present
-        # default to payload1
         payload = "payload.dd"
 
     return payload
@@ -529,20 +491,15 @@ async def blink_pico_led(led):
     led_state = False
     while True:
         if led_state:
-            #led_pwm_up(led)
-            #print("led up")
             for i in range(100):
-                # PWM LED up and down
+
                 if i < 50:
                     led.duty_cycle = int(i * 2 * 65535 / 100)  # Up
                 await asyncio.sleep(0.01)
             led_state = False
         else:
-            #led_pwm_down(led)
-            #print("led down")
             for i in range(100):
-                # PWM LED up and down
-                if i >= 50:
+               if i >= 50:
                     led.duty_cycle = 65535 - int((i - 50) * 2 * 65535 / 100)  # Down
                 await asyncio.sleep(0.01)
             led_state = True
@@ -553,7 +510,6 @@ async def blink_pico_w_led(led):
     led_state = False
     while True:
         if led_state:
-            #print("led on")
             led.value = 1
             await asyncio.sleep(0.5)
             led_state = False
